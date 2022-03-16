@@ -37,6 +37,9 @@ export interface CodeConfig {
   compareChanges: boolean
   /** 用户设置更新时重新加载数据 */
   reloadWhenSettingsChanged: boolean
+  /** 命名需要忽略的前缀 */
+  ignorePath: string[] | string
+  propertiesCase: 'camel' | 'under'
 }
 
 export interface ExtConfig extends CodeConfig, LocalConfig {}

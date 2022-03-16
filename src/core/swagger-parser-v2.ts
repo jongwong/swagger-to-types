@@ -7,27 +7,37 @@ export function parseSwaggerJson(
   configItem: SwaggerJsonUrlItem
 ): SwaggerJsonTreeItem[] {
   const { tags, paths, definitions } = swaggerJson
+  if (!paths || !definitions) {
+    console.log(paths)
+  }
   const res: SwaggerJsonTreeItem[] = []
 
   function addTag(item: { name: string; description?: string }) {
-    const itemIndex = res.length
-    tagsMap[item.name] = itemIndex
-    const tagItem: SwaggerJsonTreeItem = {
-      key: randomId(`${item.name}-xxxxxx`),
-      parentKey: configItem.url,
-      title: item.name,
-      subTitle: item.description || '',
-      type: 'group',
+    try {
+      const itemIndex = res.length
+      tagsMap[item.name] = itemIndex
+      const tagItem: SwaggerJsonTreeItem = {
+        key: randomId(`${item.name}-xxxxxx`),
+        parentKey: configItem.url,
+        title: item.name,
+        subTitle: item.description || '',
+        type: 'group',
+      }
+      res.push(tagItem)
+    } catch (error) {
+      console.warn('---------', error)
     }
-
-    res.push(tagItem)
   }
 
   const tagsMap = {}
   if (tags && tags.length) {
-    tags.forEach((v) => {
-      addTag({ name: v.name, description: v.description })
-    })
+    try {
+      tags.forEach((v) => {
+        addTag({ name: v.name, description: v.description })
+      })
+    } catch (error) {
+      console.warn(error)
+    }
   }
 
   /**
@@ -177,6 +187,7 @@ function getSwaggerJsonRef(schema?: OpenAPIV2.SchemaObject, definitions?: OpenAP
   }
 
   if (!refData) {
+    return
     log.error(JSON.stringify({ res: refData, originalRef }, undefined, 2), true)
   }
 

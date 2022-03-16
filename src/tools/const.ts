@@ -10,6 +10,8 @@ export const WORKSPACE_PATH = workspaceFolders ? workspaceFolders[0].uri.fsPath.
 export const CONFIG_LIST = <const>[
   'swaggerJsonUrl',
   'savePath',
+  'ignorePath',
+  'propertiesCase',
   'compareChanges',
   'showStatusbarItem',
   'reloadWhenSettingsChanged',

@@ -1,4 +1,86 @@
-import { BASE_INDENTATION, BASE_INDENTATION_COUNT } from '../tools'
+import { BASE_INDENTATION, BASE_INDENTATION_COUNT, config, toCamel } from '../tools'
+
+function toHump(name:string) {
+  return name.replace(/\_(\w)/g, function(all, letter){
+    return letter.toUpperCase();
+  });
+}
+function getRegxKeyword(keyWords:string[]){
+  return new RegExp(`.*(${keyWords.join('|')})`)
+}
+function getName(path:string='',method:string='get',des:string=''){
+  path = typeof path === 'string'?path : '';
+  method = typeof method === 'string'?method.toLowerCase() : 'get';
+  let preStr = '';
+  let afterStr = '';
+  if( method=== 'get'){
+    preStr = 'Get'
+  }
+  if( method=== 'post'){
+    preStr = 'Create'
+  }
+  if( method=== 'put'){
+    preStr = 'Update'
+  }
+  if(method=== 'delete'){
+    preStr = 'Delete'
+  }
+
+
+  if(getRegxKeyword(['改变' , '变更']).test(des)){
+    preStr='Change'
+  }
+  if(getRegxKeyword(['结束']).test(des)){
+    preStr='Finish'
+  }
+
+  if(getRegxKeyword(['列出','分页' , '搜索' ,'列表' , '查询']).test(des) && method === 'get'){
+    afterStr='Page'
+  }
+  if(getRegxKeyword(['创建' , '增加' , '添加']).test(des)){
+
+    preStr='Create'
+  }
+  if(getRegxKeyword(['更新']).test(des)){
+    preStr='Update'
+  }
+  if(getRegxKeyword(['提交']).test(des)){
+    preStr='Submit'
+  }
+  if(getRegxKeyword(['移除']).test(des)){
+    preStr='Delete'
+  }
+
+  const { ignorePath = '' } = config?.extConfig
+  let rawIgnoreList:any = Array.isArray(ignorePath)?ignorePath:[ignorePath];
+  const ignoreList = rawIgnoreList.map((it:string) => toDown(toHump(it.replace(/\//g,'_'))))
+
+
+
+  let find = ignorePath?ignoreList.find((it:any) => it && toHump(path).startsWith(it || '')):''
+  const newPath = path
+
+  let findIndex = newPath.indexOf('$');
+
+  let  newStr = findIndex >= 0 ?newPath.substring(0,findIndex):newPath;
+  let params:any = findIndex >= 0?newPath.substring(findIndex,newPath?.length).split('$'):[];
+  let paramsStr ='';
+
+  (Array.isArray(params)?params : []).forEach((it:string,idx:number) => {
+    it = it || ''
+    const lowIt = it.toLowerCase()
+    if(lowIt === 'put' || lowIt === 'get' || lowIt === 'post' || lowIt === 'delete'){
+      return
+    }
+    if(!paramsStr){
+      paramsStr = 'By'
+    }
+    paramsStr = paramsStr + toUp(toHump(it || ''))
+  })
+
+  return  'E' + preStr + toUp(toHump(newStr || '')).replace(toUp(find || ''),'')  + afterStr + paramsStr
+
+}
 
 /**
  * 渲染 Typescript Interface
@@ -15,8 +97,9 @@ export function renderToInterface(data: TreeInterface): string {
   let content = paramsArr
   if (content.length) content.push('')
   content = content.concat(resArr)
+  const formatName = getName(data.pathName,data.method,data.title)
 
-  const lines: string[] = [...parseHeaderInfo(data), ...parseNameSpace(name, content), '']
+  const lines: string[] = [...parseHeaderInfo(data), ...parseNameSpace(formatName, content), '']
 
   return lines.join('\n')
 }
@@ -74,6 +157,7 @@ function parseProperties(
   properties: TreeInterfacePropertiesItem | TreeInterfacePropertiesItem[] | string | undefined,
   indentation = 0
 ): string[] {
+  interfaceName =   toHump(interfaceName);
   const indentationSpace = handleIndentation(indentation) // 一级缩进
   const indentationSpace2 = handleIndentation(indentation + 1) // 二级缩进
   const interfaceList = []
@@ -99,6 +183,7 @@ function parseProperties(
       if (v.item) {
         type = `${interfaceName}${toUp(v.name)}`
         if (v.type === 'array') type = `${type}Item`
+
 
         interfaceList.push(...parseProperties(type, v.item, indentation))
       }
@@ -138,16 +223,24 @@ function parseProperties(
       if (description) {
         description = `${indentationSpace2}/** ${description} */\n`
       }
+      type = toHump(type)
+      const { propertiesCase = '' } = config?.extConfig
+      const propertiesName =  propertiesCase=== 'camel'?toDown(toHump(v.name)): v.name
 
-      return `${description}${indentationSpace2}${v.name}${v.required ? ':' : '?:'} ${type}`
+      return `${description}${indentationSpace2}${propertiesName}${v.required ? ':' : '?:'} ${type}`
     })
   } else if (typeof properties === 'object') {
     let arr: TreeInterfacePropertiesItem[] = []
 
     if (properties.properties && Array.isArray(properties.properties)) arr = properties.properties
     if (properties.item && Array.isArray(properties.item)) arr = properties.item
+
     if (arr.length) {
-      interfaceList.push(...parseProperties(`${interfaceName}${toUp(properties.name)}`, arr, indentation))
+
+      let str =`${interfaceName}${toUp(properties.name)}`
+
+
+      interfaceList.push(...parseProperties(str, arr, indentation))
     }
   } else if (typeof properties === 'string') {
     interfaceList.push(`${indentationSpace}type ${interfaceName} = ${handleType(properties)}`, '')
@@ -192,6 +285,14 @@ function handleIndentation(indentation = 0): string {
 function toUp(str: string) {
   if (typeof str !== 'string') return ''
   return str.slice(0, 1).toUpperCase() + str.slice(1)
+}
+/**
+ * 首字母小写写
+ * @param {String} str
+ */
+function toDown(str: string) {
+  if (typeof str !== 'string') return ''
+  return str.slice(0, 1).toLowerCase() + str.slice(1)
 }
 
 /**
