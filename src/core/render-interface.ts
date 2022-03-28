@@ -1,10 +1,6 @@
 import { BASE_INDENTATION, BASE_INDENTATION_COUNT, config, toCamel } from '../tools'
 
-function toHump(name:string) {
-  return name.replace(/\_(\w)/g, function(all, letter){
-    return letter.toUpperCase();
-  });
-}
+
 function getRegxKeyword(keyWords:string[]){
   return new RegExp(`.*(${keyWords.join('|')})`)
 }
@@ -61,9 +57,14 @@ function getName(path:string='',method:string='get',des:string=''){
   const newPath = path
 
   let findIndex = newPath.indexOf('$');
+  let findLastIndex = newPath.lastIndexOf('$');
 
   let  newStr = findIndex >= 0 ?newPath.substring(0,findIndex):newPath;
-  let params:any = findIndex >= 0?newPath.substring(findIndex,newPath?.length).split('$'):[];
+
+  if(findLastIndex >= 0 && findLastIndex !== findIndex ){
+    newStr = newStr + newPath.substring(findLastIndex + 1,newPath.length)
+  }
+  let params:any = findIndex >= 0?newPath.substring(findIndex,findLastIndex).split('$'):[];
   let paramsStr ='';
 
   (Array.isArray(params)?params : []).forEach((it:string,idx:number) => {
@@ -78,7 +79,21 @@ function getName(path:string='',method:string='get',des:string=''){
     paramsStr = paramsStr + toUp(toHump(it || ''))
   })
 
-  return  'E' + preStr + toUp(toHump(newStr || '')).replace(toUp(find || ''),'')  + afterStr + paramsStr
+  let name = toUp(toHump(newStr || '')).replace(toUp(find || ''),'') || ''
+  name = name?.replace(toUp(method),'')
+  name = name?.replace(preStr,'')
+  name = name?.replace(afterStr,'')
+  const nameList = getCamelList(name)
+  let ob = {}
+  let newName = ''
+  nameList.reverse().forEach((it) => {
+
+    if(!ob[it] || it?.length <= 3){
+      newName = it + newName
+    }
+    ob[it] = true;
+  })
+  return  'I' + preStr +  newName + afterStr + paramsStr
 
 }
 
@@ -347,4 +362,13 @@ function removeEmptyLines(arr: string[]): string[] {
   }
 
   return arr
+}
+function toHump(name:string) {
+  return name.replace(/\_(\w)/g, function(all, letter){
+    return letter.toUpperCase();
+  });
+}
+
+function getCamelList(str:string){
+  return str.replace(/([A-Z])/g,"_$1").split('_')
 }
