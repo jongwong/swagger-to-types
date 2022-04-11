@@ -9,18 +9,14 @@ function getName(path:string='',method:string='get',des:string=''){
   method = typeof method === 'string'?method.toLowerCase() : 'get';
   let preStr = '';
   let afterStr = '';
-  if( method=== 'get'){
-    preStr = 'Get'
-  }
+
   if( method=== 'post'){
     preStr = 'Create'
   }
   if( method=== 'put'){
     preStr = 'Update'
   }
-  if(method=== 'delete'){
-    preStr = 'Delete'
-  }
+
 
 
   if(getRegxKeyword(['改变' , '变更']).test(des)){
@@ -45,6 +41,12 @@ function getName(path:string='',method:string='get',des:string=''){
   }
   if(getRegxKeyword(['移除']).test(des)){
     preStr='Delete'
+  }
+  if( method=== 'get'){
+    preStr = 'Get'
+  }
+  if(method=== 'delete'){
+    preStr = 'Delete'
   }
 
   const { ignorePath = '' } = config?.extConfig
